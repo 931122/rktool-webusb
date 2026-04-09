@@ -542,6 +542,125 @@
       letter-spacing: 0.02em;
     }
 
+    .adb-menu-wrap {
+      position: relative;
+      display: inline-flex;
+      z-index: 4;
+    }
+
+    .adb-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 12;
+      min-width: 180px;
+      padding: 6px;
+      display: grid;
+      gap: 4px;
+      background: rgba(10, 18, 28, 0.92);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    #device-card {
+      overflow: visible;
+      z-index: 3;
+    }
+
+    .adb-menu button {
+      justify-content: flex-start;
+      width: 100%;
+      border-color: transparent;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .adb-menu button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .adb-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(3, 8, 14, 0.52);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .adb-modal-card {
+      width: min(760px, 100%);
+      max-height: min(80vh, 720px);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+      padding: 14px;
+      background: rgba(10, 18, 28, 0.86);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    }
+
+    .adb-modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .adb-modal-body {
+      display: grid;
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .adb-file-list {
+      display: grid;
+      gap: 6px;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .adb-file-item {
+      width: 100%;
+      min-height: 40px;
+      justify-content: space-between;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .adb-file-item.active {
+      border-color: var(--brand);
+      background: rgba(57, 192, 170, 0.12);
+    }
+
+    .adb-file-main {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .adb-file-name {
+      font-size: 12px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .adb-file-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
     .progress-panel {
       padding: 10px 14px;
       background: var(--surface);
@@ -672,6 +791,10 @@
       border: 1px solid var(--border);
       white-space: pre-wrap;
       word-break: break-all;
+    }
+
+    .terminal-entry {
+      white-space: pre-wrap;
     }
 
     .terminal::-webkit-scrollbar {
@@ -879,7 +1002,19 @@
               <button id="adb-run" class="secondary-btn" type="button" style="padding: 0 12px; min-width: 72px;" disabled>执行 ADB</button>
             </div>
             <div class="inline-actions" style="margin-top: 6px; gap: 6px;">
+              <div class="adb-menu-wrap">
+                <button id="adb-quick-toggle" class="secondary-btn" type="button" disabled>ADB 快捷命令</button>
+                <div id="adb-quick-menu" class="adb-menu" hidden>
+                  <button class="adb-quick-item" type="button" data-command="getprop ro.product.model">获取型号</button>
+                  <button class="adb-quick-item" type="button" data-command="getprop ro.serialno">获取序列号</button>
+                  <button class="adb-quick-item" type="button" data-command="ls /dev/block/by-name">查看分区</button>
+                  <button class="adb-quick-item" type="button" data-command="reboot">重启系统</button>
+                  <button class="adb-quick-item" type="button" data-command="reboot bootloader">重启到 bootloader</button>
+                  <button class="adb-quick-item" type="button" data-command="reboot loader">重启到 loader</button>
+                </div>
+              </div>
               <button id="adb-reboot-loader" class="secondary-btn" type="button" disabled>Reboot Loader</button>
+              <button id="adb-browser-open" class="secondary-btn" type="button" disabled>浏览文件</button>
             </div>
           </div>
         </article>
@@ -905,8 +1040,28 @@
           </div>
         </div>
 
-        <pre id="output" class="terminal"></pre>
+        <div id="output" class="terminal"></div>
       </section>
+
+      <div id="adb-browser-modal" class="adb-modal" hidden>
+        <div class="adb-modal-card">
+          <div class="adb-modal-head">
+            <div>
+              <h2 class="card-title">ADB 文件浏览</h2>
+              <p class="card-desc">浏览设备目录并将文件拉取到本地浏览器下载。</p>
+            </div>
+            <button id="adb-browser-close" class="ghost-btn" type="button">关闭</button>
+          </div>
+          <div class="adb-modal-body">
+            <div class="inline-actions" style="margin-top: 0; gap: 6px;">
+              <input id="adb-path" type="text" value="/sdcard/" style="flex: 1;" placeholder="浏览路径，如 /sdcard/" />
+              <button id="adb-list" class="secondary-btn" type="button" disabled>浏览</button>
+              <button id="adb-pull" class="secondary-btn" type="button" disabled>拉取文件</button>
+            </div>
+            <div id="adb-file-list" class="adb-file-list"></div>
+          </div>
+        </div>
+      </div>
 
       <details class="card">
         <summary>使用说明与注意事项</summary>
@@ -951,9 +1106,19 @@
     const downloadOutputBtn = document.getElementById('download-output');
     const adbStatus = document.getElementById('adb-status');
     const adbToggleBtn = document.getElementById('adb-toggle');
+    const adbQuickToggleBtn = document.getElementById('adb-quick-toggle');
+    const adbQuickMenu = document.getElementById('adb-quick-menu');
+    const adbQuickItems = document.querySelectorAll('.adb-quick-item');
     const adbCommandInput = document.getElementById('adb-command');
     const adbRunBtn = document.getElementById('adb-run');
     const adbRebootLoaderBtn = document.getElementById('adb-reboot-loader');
+    const adbBrowserOpenBtn = document.getElementById('adb-browser-open');
+    const adbBrowserModal = document.getElementById('adb-browser-modal');
+    const adbBrowserCloseBtn = document.getElementById('adb-browser-close');
+    const adbPathInput = document.getElementById('adb-path');
+    const adbListBtn = document.getElementById('adb-list');
+    const adbPullBtn = document.getElementById('adb-pull');
+    const adbFileList = document.getElementById('adb-file-list');
     const loaderSummary = document.getElementById('loader-summary');
     const fileSummary = document.getElementById('file-summary');
     const mainGrid = document.getElementById('main-grid');
@@ -979,25 +1144,144 @@
     let usbConnected = false;
     let busy = false;
     let adbSession = null;
+    let adbSelectedFile = null;
     let flashMode = 'all';
     let stdoutRateLimited = false;
     let stdoutLastSeen = 0;
     let flashProgressTotal = 0;
     let flashProgressDone = 0;
+    let outputPlainText = '';
 
     function appendLine(text) {
-      const nextLine = `${text}\n`;
-      output.textContent = `${nextLine}${output.textContent}`;
+      const lineText = String(text);
+      outputPlainText = `${stripAnsi(lineText)}\n${outputPlainText}`;
+      const entry = document.createElement('div');
+      entry.className = 'terminal-entry';
+      entry.innerHTML = renderAnsiToHtml(lineText);
+      output.prepend(entry);
       output.scrollTop = 0;
     }
 
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function stripAnsi(text) {
+      return String(text).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+    }
+
+    function sgrStateToStyle(state) {
+      const styles = [];
+      if (state.fg) {
+        styles.push(`color:${state.fg}`);
+      }
+      if (state.bg) {
+        styles.push(`background:${state.bg}`);
+      }
+      if (state.bold) {
+        styles.push('font-weight:700');
+      }
+      return styles.join(';');
+    }
+
+    function ansiCodeToColor(code, isBackground) {
+      const palette = {
+        30: '#111827',
+        31: '#f87171',
+        32: '#4ade80',
+        33: '#fbbf24',
+        34: '#60a5fa',
+        35: '#f472b6',
+        36: '#22d3ee',
+        37: '#e5e7eb',
+        90: '#6b7280',
+        91: '#fca5a5',
+        92: '#86efac',
+        93: '#fde68a',
+        94: '#93c5fd',
+        95: '#f9a8d4',
+        96: '#67e8f9',
+        97: '#f9fafb',
+      };
+      if (code >= 40 && code <= 47) {
+        return isBackground ? palette[code - 10] : null;
+      }
+      if (code >= 100 && code <= 107) {
+        return isBackground ? palette[code - 10] : null;
+      }
+      if (!isBackground && palette[code]) {
+        return palette[code];
+      }
+      return null;
+    }
+
+    function renderAnsiToHtml(text) {
+      const input = String(text);
+      const state = {
+        fg: null,
+        bg: null,
+        bold: false,
+      };
+      const ansiPattern = /\u001b\[([0-9;]*)m/g;
+      let cursor = 0;
+      let html = '';
+
+      function appendChunk(chunk) {
+        if (!chunk) {
+          return;
+        }
+        const escaped = escapeHtml(chunk).replace(/\n/g, '<br>');
+        const style = sgrStateToStyle(state);
+        html += style ? `<span style="${style}">${escaped}</span>` : escaped;
+      }
+
+      let match;
+      while ((match = ansiPattern.exec(input)) !== null) {
+        appendChunk(input.slice(cursor, match.index));
+        cursor = match.index + match[0].length;
+        const codes = match[1] ? match[1].split(';').map((value) => Number.parseInt(value, 10) || 0) : [0];
+        codes.forEach((code) => {
+          if (code === 0) {
+            state.fg = null;
+            state.bg = null;
+            state.bold = false;
+          } else if (code === 1) {
+            state.bold = true;
+          } else if (code === 22) {
+            state.bold = false;
+          } else if (code === 39) {
+            state.fg = null;
+          } else if (code === 49) {
+            state.bg = null;
+          } else {
+            const fg = ansiCodeToColor(code, false);
+            const bg = ansiCodeToColor(code, true);
+            if (fg) {
+              state.fg = fg;
+            }
+            if (bg) {
+              state.bg = bg;
+            }
+          }
+        });
+      }
+
+      appendChunk(input.slice(cursor));
+      return html || '&nbsp;';
+    }
+
     function clearOutput() {
-      output.textContent = '';
+      outputPlainText = '';
+      output.innerHTML = '';
       appendLine('--- 日志已清空 ---');
     }
 
     function getOutputText() {
-      return output.textContent || '';
+      return outputPlainText || '';
     }
 
     function createLogFileName() {
@@ -1093,7 +1377,140 @@
       adbToggleBtn.textContent = connected ? '断开 ADB' : '连接 ADB';
       adbRunBtn.disabled = busy || !connected;
       adbRebootLoaderBtn.disabled = busy || !connected;
+      adbQuickToggleBtn.disabled = busy || !connected;
+      adbBrowserOpenBtn.disabled = busy || !connected;
+      adbListBtn.disabled = busy || !connected;
+      adbPullBtn.disabled = busy || !connected || !adbSelectedFile;
       adbCommandInput.disabled = busy || !connected;
+      adbPathInput.disabled = busy || !connected;
+      if (!connected) {
+        adbQuickMenu.hidden = true;
+        adbBrowserModal.hidden = true;
+      }
+    }
+
+    function normalizeAdbPath(path) {
+      const value = (path || '').trim();
+      if (!value) {
+        return '/';
+      }
+      return value.startsWith('/') ? value : `/${value}`;
+    }
+
+    function joinAdbPath(base, name) {
+      if (base === '/') {
+        return `/${name}`;
+      }
+      return `${base.replace(/\/+$/, '')}/${name}`;
+    }
+
+    function escapeShellArg(value) {
+      return `'${String(value).replace(/'/g, `'\\''`)}'`;
+    }
+
+    function isInteractiveSuCommand(command) {
+      const normalized = command.trim().replace(/\s+/g, ' ');
+      return normalized === 'su'
+        || normalized === 'su -'
+        || normalized === 'su 0'
+        || normalized.startsWith('su --login')
+        || /^su(\s+-[a-zA-Z]+|\s+\d+)?$/.test(normalized);
+    }
+
+    function parseAdbListOutput(text, currentPath) {
+      return text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const isDirectory = line.endsWith('/');
+          const name = isDirectory ? line.slice(0, -1) : line;
+          return {
+            name,
+            isDirectory,
+            path: joinAdbPath(currentPath, name),
+          };
+        })
+        .filter((entry) => entry.name !== '.' && entry.name !== '..');
+    }
+
+    function renderAdbFileList(entries) {
+      adbFileList.innerHTML = '';
+      if (!entries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'field-hint';
+        empty.textContent = '当前目录没有可显示的文件';
+        adbFileList.appendChild(empty);
+        return;
+      }
+
+      entries.forEach((entry) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = `adb-file-item ${adbSelectedFile?.path === entry.path ? 'active' : ''}`;
+        item.innerHTML = `
+          <span class="adb-file-main">
+            <span class="adb-file-name">${entry.isDirectory ? `${entry.name}/` : entry.name}</span>
+            <span class="adb-file-meta">${entry.isDirectory ? '目录' : '文件'}</span>
+          </span>
+        `;
+        item.addEventListener('click', async () => {
+          if (entry.isDirectory) {
+            adbSelectedFile = null;
+            adbPathInput.value = entry.path.endsWith('/') ? entry.path : `${entry.path}/`;
+            await browseAdbPath(entry.path);
+            return;
+          }
+          adbSelectedFile = entry;
+          renderAdbFileList(entries);
+          updateAdbState();
+        });
+        adbFileList.appendChild(item);
+      });
+    }
+
+    async function browseAdbPath(path = adbPathInput.value) {
+      if (!adbSession?.connected) {
+        appendLine('ADB 尚未连接');
+        return;
+      }
+      const safePath = normalizeAdbPath(path);
+      adbSelectedFile = null;
+      adbPathInput.value = safePath.endsWith('/') && safePath !== '/' ? safePath : `${safePath}${safePath.endsWith('/') ? '' : '/'}`;
+      try {
+        setBusy(true, '浏览 ADB 文件');
+        const command = `ls -1ap ${escapeShellArg(safePath)}`;
+        const outputText = await adbSession.runShell(command);
+        renderAdbFileList(parseAdbListOutput(outputText, safePath));
+        appendLine(`[ADB] 已列出目录: ${safePath}`);
+      } catch (error) {
+        adbFileList.innerHTML = '';
+        appendLine(`浏览目录失败: ${String(error.message || error)}`);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function pullAdbFile(entry) {
+      if (!adbSession?.connected) {
+        appendLine('ADB 尚未连接');
+        return;
+      }
+      if (!entry || entry.isDirectory) {
+        appendLine('请选择一个文件再拉取');
+        return;
+      }
+      try {
+        setBusy(true, '拉取 ADB 文件');
+        appendLine(`[ADB] pull ${entry.path}`);
+        const data = await adbSession.runExec(`cat ${escapeShellArg(entry.path)}`, { decode: 'binary' });
+        triggerBlobDownload(new Blob([data]), entry.name);
+        appendLine(`[ADB] 已拉取文件: ${entry.name}`);
+      } catch (error) {
+        appendLine(`拉取文件失败: ${String(error.message || error)}`);
+      } finally {
+        setBusy(false);
+      }
     }
 
     function resetProgress(text = '等待刷写任务') {
@@ -1469,6 +1886,8 @@
         appendLine(`ADB 设备已断开: ${event.device.productName || '未知设备'}`);
         await adbSession.close();
         adbSession = null;
+        adbSelectedFile = null;
+        adbFileList.innerHTML = '';
         updateAdbState('ADB 设备已断开');
       }
       if (isRockchipUsbDevice(event.device)) {
@@ -1488,8 +1907,7 @@
     const appendStdio = (() => {
       let lastLineWasProgress = false;
       return function(text) {
-        // 去除 ANSI 转义序列和一些控制字符
-        const cleanText = text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
+        const cleanText = String(text).trim();
         
         if (!cleanText) return;
 
@@ -1862,6 +2280,8 @@
           await adbSession.close();
           appendLine('ADB 已断开');
           adbSession = null;
+          adbSelectedFile = null;
+          adbFileList.innerHTML = '';
           updateAdbState('未连接 ADB 设备');
         } catch (error) {
           appendLine(`断开 ADB 失败: ${String(error.message || error)}`);
@@ -1881,6 +2301,8 @@
         });
         await session.connect();
         adbSession = session;
+        adbSelectedFile = null;
+        adbFileList.innerHTML = '';
         appendLine(`ADB 已连接: ${device.productName || '未知设备'}`);
         updateAdbState();
       } catch (error) {
@@ -1901,12 +2323,18 @@
         appendLine('ADB 尚未连接');
         return;
       }
+      if (isInteractiveSuCommand(command)) {
+        appendLine("当前 Web ADB 只支持非交互命令，`su` 会进入交互 shell 并一直挂起。请改用 `su -c 'your command'`。");
+        adbCommandInput.focus();
+        adbCommandInput.select();
+        return;
+      }
 
       try {
         setBusy(true, '执行 ADB');
         appendLine(`[ADB] shell: ${command}`);
         const result = await adbSession.runShell(command);
-        const text = result.trim();
+        const text = String(result).trim();
         appendLine(text ? `[ADB 输出]\n${text}` : '[ADB] 命令执行完成，无输出');
       } catch (error) {
         appendLine(`ADB 命令执行失败: ${String(error.message || error)}`);
@@ -1925,6 +2353,77 @@
       if (!adbRunBtn.disabled) {
         adbRunBtn.click();
       }
+    });
+
+    adbQuickToggleBtn.addEventListener('click', () => {
+      if (adbQuickToggleBtn.disabled) {
+        return;
+      }
+      adbQuickMenu.hidden = !adbQuickMenu.hidden;
+    });
+
+    adbQuickItems.forEach((item) => {
+      item.addEventListener('click', async () => {
+        const command = item.dataset.command;
+        adbQuickMenu.hidden = true;
+        if (!command) {
+          return;
+        }
+        adbCommandInput.value = command;
+        adbRunBtn.click();
+      });
+    });
+
+    adbBrowserOpenBtn.addEventListener('click', () => {
+      if (adbBrowserOpenBtn.disabled) {
+        return;
+      }
+      adbBrowserModal.hidden = false;
+      adbPathInput.focus();
+      adbPathInput.select();
+    });
+
+    adbBrowserCloseBtn.addEventListener('click', () => {
+      adbSelectedFile = null;
+      updateAdbState();
+      adbBrowserModal.hidden = true;
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!adbQuickMenu.hidden && !adbQuickMenu.contains(event.target) && event.target !== adbQuickToggleBtn) {
+        adbQuickMenu.hidden = true;
+      }
+      if (!adbBrowserModal.hidden && event.target === adbBrowserModal) {
+        adbSelectedFile = null;
+        updateAdbState();
+        adbBrowserModal.hidden = true;
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !adbBrowserModal.hidden) {
+        adbSelectedFile = null;
+        updateAdbState();
+        adbBrowserModal.hidden = true;
+      }
+    });
+
+    adbListBtn.addEventListener('click', () => {
+      void browseAdbPath();
+    });
+
+    adbPathInput.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.isComposing) {
+        return;
+      }
+      event.preventDefault();
+      if (!adbListBtn.disabled) {
+        void browseAdbPath();
+      }
+    });
+
+    adbPullBtn.addEventListener('click', () => {
+      void pullAdbFile(adbSelectedFile);
     });
 
     adbRebootLoaderBtn.addEventListener('click', async () => {

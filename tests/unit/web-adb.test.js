@@ -207,3 +207,26 @@ test('handleAuth signs first and sends public key on second token', async () => 
   assert.equal(sent[1].command, ADB_COMMANDS.AUTH);
   assert.equal(sent[1].arg0, 3);
 });
+
+test('handleClose resolves binary streams without utf8 decoding', async () => {
+  const session = new WebAdbSession({
+    device: {},
+    storage: null,
+    crypto,
+  });
+  let resolved = null;
+  session.sendPacket = async () => {};
+  session.streams.set(1, {
+    localId: 1,
+    remoteId: 2,
+    chunks: [Uint8Array.from([0, 255, 1])],
+    decode: 'binary',
+    resolve: (value) => {
+      resolved = value;
+    },
+    reject: () => {},
+  });
+
+  await session.handleClose(2, 1);
+  assert.deepEqual(Array.from(resolved), [0, 255, 1]);
+});

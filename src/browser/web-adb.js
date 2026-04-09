@@ -574,26 +574,40 @@ export class WebAdbSession {
     }
     this.streams.delete(localId);
     await this.sendPacket(ADB_COMMANDS.CLSE, localId, remoteId);
-    stream.resolve(utf8Decode(concatBytes(stream.chunks)));
+    const bytes = concatBytes(stream.chunks);
+    if (stream.decode === 'binary') {
+      stream.resolve(bytes);
+      return;
+    }
+    stream.resolve(utf8Decode(bytes));
   }
 
-  async runShell(command) {
+  async openService(service, options = {}) {
     if (!this.connected) {
       throw new Error('ADB 尚未连接');
     }
     const localId = this.streamId++;
-    const service = utf8Encode(`shell:${command}\0`);
+    const serviceBytes = utf8Encode(`${service}\0`);
     const resultPromise = new Promise((resolve, reject) => {
       this.streams.set(localId, {
         localId,
         remoteId: 0,
         opened: false,
         chunks: [],
+        decode: options.decode === 'binary' ? 'binary' : 'text',
         resolve,
         reject,
       });
     });
-    await this.sendPacket(ADB_COMMANDS.OPEN, localId, 0, service);
+    await this.sendPacket(ADB_COMMANDS.OPEN, localId, 0, serviceBytes);
     return resultPromise;
+  }
+
+  async runShell(command) {
+    return this.openService(`shell:${command}`, { decode: 'text' });
+  }
+
+  async runExec(command, options = {}) {
+    return this.openService(`exec:${command}`, options);
   }
 }
