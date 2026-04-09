@@ -811,6 +811,23 @@
             <input id="command" type="text" value="ld" style="flex: 1;" placeholder="自定义命令" />
             <button id="run" class="secondary-btn" type="button" style="padding: 0 12px; min-width: 50px;">执行</button>
           </div>
+
+          <div class="summary-box" style="margin-top: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <div>
+                <label style="margin-bottom: 0;">Web ADB</label>
+                <div id="adb-status" class="field-hint">未连接 ADB 设备</div>
+              </div>
+              <button id="adb-toggle" class="secondary-btn" type="button" style="min-width: 88px;">连接 ADB</button>
+            </div>
+            <div class="inline-actions" style="margin-top: 0; gap: 6px;">
+              <input id="adb-command" type="text" value="getprop ro.product.model" style="flex: 1;" placeholder="输入 adb shell 命令" />
+              <button id="adb-run" class="secondary-btn" type="button" style="padding: 0 12px; min-width: 72px;" disabled>执行 ADB</button>
+            </div>
+            <div class="inline-actions" style="margin-top: 6px; gap: 6px;">
+              <button id="adb-reboot-loader" class="secondary-btn" type="button" disabled>Reboot Loader</button>
+            </div>
+          </div>
         </article>
       </div>
 
@@ -859,6 +876,7 @@
 
   <script type="module">
     import { createRKToolWorker } from './src/browser/worker-proxy.js?v=RKTOOLSRC_VER';
+    import { WebAdbSession } from './src/browser/web-adb.js?v=RKTOOLSRC_VER';
     import { isRkfwBlob, parseRkfwBlob } from './src/rkfw-parser.js?v=RKTOOLSRC_VER';
 
     const output = document.getElementById('output');
@@ -877,6 +895,11 @@
     const clearOutputBtn = document.getElementById('clear-output');
     const copyOutputBtn = document.getElementById('copy-output');
     const downloadOutputBtn = document.getElementById('download-output');
+    const adbStatus = document.getElementById('adb-status');
+    const adbToggleBtn = document.getElementById('adb-toggle');
+    const adbCommandInput = document.getElementById('adb-command');
+    const adbRunBtn = document.getElementById('adb-run');
+    const adbRebootLoaderBtn = document.getElementById('adb-reboot-loader');
     const loaderSummary = document.getElementById('loader-summary');
     const fileSummary = document.getElementById('file-summary');
     const mainGrid = document.getElementById('main-grid');
@@ -901,6 +924,7 @@
     let rkfwMeta = null;
     let usbConnected = false;
     let busy = false;
+    let adbSession = null;
     let flashMode = 'all';
     let stdoutRateLimited = false;
     let stdoutLastSeen = 0;
@@ -959,6 +983,25 @@
     function setDeviceStatus(kind, text) {
       deviceStatusBadge.className = `status-badge ${kind}`;
       deviceStatusText.textContent = text;
+    }
+
+    function isRockchipUsbDevice(device) {
+      return device?.vendorId === 0x2207;
+    }
+
+    function updateAdbState(text = null) {
+      const connected = !!adbSession?.connected;
+      if (text !== null) {
+        adbStatus.textContent = text;
+      } else {
+        adbStatus.textContent = connected
+          ? `已连接: ${adbSession.device.productName || 'ADB 设备'}`
+          : '未连接 ADB 设备';
+      }
+      adbToggleBtn.textContent = connected ? '断开 ADB' : '连接 ADB';
+      adbRunBtn.disabled = busy || !connected;
+      adbRebootLoaderBtn.disabled = busy || !connected;
+      adbCommandInput.disabled = busy || !connected;
     }
 
     function resetProgress(text = '等待刷写任务') {
@@ -1084,6 +1127,8 @@
       clearOutputBtn.disabled = busy;
       copyOutputBtn.disabled = busy;
       downloadOutputBtn.disabled = busy;
+      adbToggleBtn.disabled = busy;
+      updateAdbState();
       updateFlashModeUI();
     }
 
@@ -1259,6 +1304,9 @@
     });
 
     async function onUsbConnect(device) {
+      if (!isRockchipUsbDevice(device)) {
+        return;
+      }
       appendLine(`设备已连接: ${device.productName} (0x${device.productId.toString(16)})`);
       window.rkdev = device;
       usbConnected = true;
@@ -1270,6 +1318,9 @@
     }
 
     function onUsbDisconnect(device) {
+      if (!isRockchipUsbDevice(device)) {
+        return;
+      }
       appendLine(`设备已断开: ${device.productName} (0x${device.productId.toString(16)})`);
       usbConnected = false;
       deviceInfo.textContent = '等待连接';
@@ -1285,17 +1336,28 @@
     }
 
     navigator.usb.addEventListener('connect', async (event) => {
-      await onUsbConnect(event.device);
+      if (isRockchipUsbDevice(event.device)) {
+        await onUsbConnect(event.device);
+      }
     });
 
-    navigator.usb.addEventListener('disconnect', (event) => {
-      onUsbDisconnect(event.device);
+    navigator.usb.addEventListener('disconnect', async (event) => {
+      if (adbSession?.device === event.device) {
+        appendLine(`ADB 设备已断开: ${event.device.productName || '未知设备'}`);
+        await adbSession.close();
+        adbSession = null;
+        updateAdbState('ADB 设备已断开');
+      }
+      if (isRockchipUsbDevice(event.device)) {
+        onUsbDisconnect(event.device);
+      }
     });
 
     setTimeout(() => {
       navigator.usb.getDevices().then(async (devices) => {
-        if (devices.length > 0) {
-          await onUsbConnect(devices[0]);
+        const rkDevice = devices.find((device) => isRockchipUsbDevice(device));
+        if (rkDevice) {
+          await onUsbConnect(rkDevice);
         }
       });
     }, 500);
@@ -1670,9 +1732,100 @@
       }
     });
 
+    adbToggleBtn.addEventListener('click', async () => {
+      if (adbSession) {
+        setBusy(true, '断开 ADB');
+        try {
+          await adbSession.close();
+          appendLine('ADB 已断开');
+          adbSession = null;
+          updateAdbState('未连接 ADB 设备');
+        } catch (error) {
+          appendLine(`断开 ADB 失败: ${String(error.message || error)}`);
+        } finally {
+          setBusy(false);
+        }
+        return;
+      }
+
+      try {
+        setBusy(true, '连接 ADB');
+        updateAdbState('等待选择 ADB 设备');
+        const device = await WebAdbSession.requestDevice();
+        const session = new WebAdbSession({
+          device,
+          onLog: (text) => appendLine(`[ADB] ${text}`),
+        });
+        await session.connect();
+        adbSession = session;
+        appendLine(`ADB 已连接: ${device.productName || '未知设备'}`);
+        updateAdbState();
+      } catch (error) {
+        updateAdbState('未连接 ADB 设备');
+        appendLine(`连接 ADB 失败: ${String(error.message || error)}`);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    adbRunBtn.addEventListener('click', async () => {
+      const command = adbCommandInput.value.trim();
+      if (!command) {
+        appendLine('请输入 ADB shell 命令');
+        return;
+      }
+      if (!adbSession?.connected) {
+        appendLine('ADB 尚未连接');
+        return;
+      }
+
+      try {
+        setBusy(true, '执行 ADB');
+        appendLine(`[ADB] shell: ${command}`);
+        const result = await adbSession.runShell(command);
+        const text = result.trim();
+        appendLine(text ? `[ADB 输出]\n${text}` : '[ADB] 命令执行完成，无输出');
+      } catch (error) {
+        appendLine(`ADB 命令执行失败: ${String(error.message || error)}`);
+      } finally {
+        setBusy(false);
+        adbCommandInput.focus();
+        adbCommandInput.select();
+      }
+    });
+
+    adbCommandInput.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.isComposing) {
+        return;
+      }
+      event.preventDefault();
+      if (!adbRunBtn.disabled) {
+        adbRunBtn.click();
+      }
+    });
+
+    adbRebootLoaderBtn.addEventListener('click', async () => {
+      if (!adbSession?.connected) {
+        appendLine('ADB 尚未连接');
+        return;
+      }
+
+      try {
+        setBusy(true, '执行 ADB reboot loader');
+        appendLine('[ADB] reboot loader');
+        await adbSession.runShell('reboot loader');
+        appendLine('[ADB] 已发送 reboot loader，设备可能会立即断开并进入 Loader 模式');
+      } catch (error) {
+        appendLine(`ADB reboot loader 失败: ${String(error.message || error)}`);
+      } finally {
+        setBusy(false);
+      }
+    });
+
     setLoaderSummary(null);
     updateFirmwareSummary();
     updateActionState();
+    updateAdbState();
     resetProgress();
   </script>
 </body>
