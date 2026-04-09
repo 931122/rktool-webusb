@@ -467,9 +467,16 @@
       height: 32px;
       padding: 0 12px;
       font-size: 13px;
-      background: transparent;
+      background: rgba(255, 255, 255, 0.04);
       color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: var(--radius-sm);
+    }
+
+    .segmented button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.16);
+      color: var(--text);
     }
 
     .segmented button.active {
@@ -479,6 +486,8 @@
 
     .chip {
       display: inline-flex;
+      align-items: center;
+      justify-content: center;
       padding: 4px 10px;
       border-radius: var(--radius-sm);
       background: rgba(255, 255, 255, 0.04);
@@ -486,6 +495,51 @@
       font-size: 11px;
       color: var(--text-muted);
       font-weight: 500;
+    }
+
+    .chip-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .chip-download {
+      min-height: 48px;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--border-strong);
+      justify-content: flex-start;
+      text-align: left;
+      width: 100%;
+    }
+
+    .chip-download:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .chip-download-body {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .chip-download-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .chip-download-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.2;
+      letter-spacing: 0.02em;
     }
 
     .progress-panel {
@@ -980,6 +1034,44 @@
       ));
     }
 
+    function getDownloadableParts() {
+      if (!rkfwMeta) {
+        return [];
+      }
+
+      const entries = [];
+      if (rkfwMeta.loader?.size > 0) {
+        entries.push({
+          name: 'bootloader',
+          label: rkfwMeta.loader.name || 'MiniLoaderAll.bin',
+          downloadName: rkfwMeta.loader.name || 'MiniLoaderAll.bin',
+          offset: rkfwMeta.loader.offset,
+          size: rkfwMeta.loader.size,
+        });
+      }
+
+      rkfwMeta.parts.forEach((part) => {
+        if (!part || part.size <= 0) {
+          return;
+        }
+        if (part.name === 'package-file') {
+          return;
+        }
+        const downloadName = part.name === 'parameter'
+          ? 'parameter.txt'
+          : (part.fileName || `${part.name}.img`);
+        entries.push({
+          name: part.name,
+          label: downloadName,
+          downloadName,
+          offset: part.offset,
+          size: part.size,
+        });
+      });
+
+      return entries;
+    }
+
     function setDeviceStatus(kind, text) {
       deviceStatusBadge.className = `status-badge ${kind}`;
       deviceStatusText.textContent = text;
@@ -1021,19 +1113,49 @@
       progressValue.textContent = `${Math.round(ratio * 100)}%`;
     }
 
+    function triggerBlobDownload(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadRkfwEntry(entry) {
+      if (!selectedFile || !entry) {
+        return;
+      }
+      const blob = selectedFile.slice(entry.offset, entry.offset + entry.size);
+      triggerBlobDownload(blob, entry.downloadName);
+      appendLine(`已导出: ${entry.downloadName}`);
+    }
+
     function renderPartitionChips(parts) {
       partitionChipRow.innerHTML = '';
       if (!parts.length) {
         const chip = document.createElement('span');
         chip.className = 'chip muted';
-        chip.textContent = '当前没有可列出的 RKFW 分区';
+        chip.textContent = '当前没有可导出的 RKFW 文件';
         partitionChipRow.appendChild(chip);
         return;
       }
       parts.forEach((part) => {
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.textContent = `${part.name} · ${formatBytes(part.size)}`;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip chip-download';
+        chip.title = `下载 ${part.downloadName}`;
+        chip.innerHTML = `
+          <span class="chip-download-body">
+            <span class="chip-download-name">${part.label}</span>
+            <span class="chip-download-meta">${formatBytes(part.size)}</span>
+          </span>
+        `;
+        chip.addEventListener('click', () => {
+          downloadRkfwEntry(part);
+        });
         partitionChipRow.appendChild(chip);
       });
     }
@@ -1190,8 +1312,9 @@
       }
 
       const flashableParts = getFlashableParts();
+      const downloadableParts = getDownloadableParts();
       firmwareSummary.textContent = `${rkfwMeta.model || 'RKFW'} / ${flashableParts.length} 分区`;
-      renderPartitionChips(flashableParts);
+      renderPartitionChips(downloadableParts);
       renderPartitionSelect();
       updateRkfwPanelVisibility();
       describeSelectedFile(selectedFile);
