@@ -5,86 +5,857 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>rkdeveloptool Web 版</title>
   <style>
-    body {
-      padding-bottom: 40px;
+    :root {
+      color-scheme: dark;
+      --bg: #050a14;
+      --bg-gradient: radial-gradient(circle at 0% 0%, rgba(57, 192, 170, 0.15), transparent 35%),
+                      radial-gradient(circle at 100% 0%, rgba(88, 122, 255, 0.18), transparent 30%),
+                      radial-gradient(circle at 50% 100%, rgba(57, 192, 170, 0.05), transparent 40%),
+                      linear-gradient(180deg, #050a14 0%, #080f1e 100%);
+      --surface: rgba(10, 18, 28, 0.42);
+      --surface-strong: rgba(10, 18, 28, 0.58);
+      --surface-glass: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --border-glow: rgba(255, 255, 255, 0.12);
+      --text: #f0f4f8;
+      --text-muted: #94a3b8;
+      --brand: #39c0aa;
+      --brand-hover: #4fd1bd;
+      --brand-glow: rgba(57, 192, 170, 0.4);
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.4);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 10px;
+      --radius-xl: 12px;
+      --font-sans: "Inter", "Geist", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "JetBrains Mono", "Geist Mono", "Fira Code", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    footer {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background: var(--bg-gradient);
+      background-attachment: fixed;
+    }
+
+    body {
+      padding: 10px 12px;
+      line-height: 1.4;
+    }
+
+    .shell {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: grid;
+      gap: 10px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 2px 2px 0;
+    }
+
+    .brandline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brandmark {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+    }
+
+    .brandmark svg {
+      width: 22px;
+      height: 22px;
+      display: block;
+      filter: none;
+    }
+
+    .brandtext strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      background: linear-gradient(to right, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brandtext span {
+      display: none;
+    }
+
+    .hero {
+      border-radius: var(--radius-lg);
+      background: var(--surface-glass);
+      border: 1px solid var(--border);
+      padding: 16px;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md);
+    }
+
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .stack, .workspace {
+      display: grid;
+      gap: 12px;
+    }
+
+    .row-two {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr);
+      gap: 12px;
+    }
+
+    .row-two.rkfw-mode {
+      grid-template-columns: 350px 1fr;
+      grid-template-areas: 
+        "file rkfw"
+        "device rkfw";
+      align-items: start;
+    }
+
+    .row-two.rkfw-mode #file-card { grid-area: file; }
+    .row-two.rkfw-mode #rkfw-card { grid-area: rkfw; height: 100%; }
+    .row-two.rkfw-mode #device-card { grid-area: device; }
+
+    [hidden] { display: none !important; }
+
+    .partition-list {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: rgba(0, 0, 0, 0.2);
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .partition-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       padding: 8px 12px;
-      background: #fff;
+      border-bottom: 1px solid var(--border);
+      transition: var(--transition);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .partition-item:last-child { border-bottom: none; }
+    .partition-item:hover { background: rgba(255, 255, 255, 0.03); }
+
+    .partition-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--brand);
+    }
+
+    .partition-info {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .partition-name { font-weight: 600; color: var(--text); }
+    .partition-size { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      background: var(--surface);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+    }
+
+    .card:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .card-desc {
+      margin: 2px 0 0;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .kpi {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+
+    .kpi:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-glow);
+    }
+
+    .kpi-label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-radius: var(--radius-xl);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      position: relative;
+    }
+
+    .status-badge.connected .status-dot {
+      background: var(--ok);
+      box-shadow: 0 0 10px var(--ok);
+      animation: pulse-ok 2s infinite;
+    }
+
+    .status-badge.busy .status-dot {
+      background: var(--brand);
+      box-shadow: 0 0 10px var(--brand);
+      animation: pulse-brand 2s infinite;
+    }
+
+    .status-badge.error .status-dot {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+    }
+
+    @keyframes pulse-ok {
+      0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    }
+
+    @keyframes pulse-brand {
+      0% { box-shadow: 0 0 0 0 rgba(57, 192, 170, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(57, 192, 170, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(57, 192, 170, 0); }
+    }
+
+
+    .summary-box {
+      padding: 12px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    .summary-box h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .summary-box p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input[type="file"],
+    input[type="text"],
+    select {
+      width: 100%;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-strong);
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--text);
+      font-size: 13px;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    input[type="file"] {
+      padding: 6px 10px;
+      line-height: 1;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-glow);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .actions, .inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 36px;
+      padding: 0 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid transparent;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .primary-btn {
+      background: var(--brand);
+      color: #050a14;
+      box-shadow: 0 4px 15px var(--brand-glow);
+    }
+
+    .primary-btn:hover:not(:disabled) {
+      background: var(--brand-hover);
+      box-shadow: 0 6px 20px var(--brand-glow);
+      transform: translateY(-1px);
+    }
+
+    .secondary-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+
+    .secondary-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--text-muted);
+    }
+
+    .ghost-btn {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+
+    .ghost-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .segmented {
+      display: inline-flex;
+      padding: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      gap: 4px;
+    }
+
+    .segmented button {
+      height: 32px;
+      padding: 0 12px;
+      font-size: 13px;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+    }
+
+    .segmented button.active {
+      background: var(--brand);
+      color: #050a14;
+    }
+
+    .chip {
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .progress-panel {
+      padding: 10px 14px;
+      background: var(--surface);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+      margin-bottom: 6px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    progress::-webkit-progress-bar {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    progress::-webkit-progress-value {
+      background: linear-gradient(90deg, var(--brand), #587aff);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+
+    details {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 12px 14px;
+      margin-top: 10px;
+      transition: var(--transition);
+    }
+
+    details[open] {
+      background: var(--surface-strong);
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text);
+      outline: none;
+      user-select: none;
+    }
+
+    details p, details li {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .terminal-shell {
+      border-radius: var(--radius-lg);
+      background: rgba(10, 18, 28, 0.52);
+      border: 1px solid var(--border);
+      padding: 14px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+      position: relative;
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+    }
+
+    .terminal-shell::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .terminal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .terminal-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-title::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ff5f56;
+      box-shadow: 12px 0 0 #ffbd2e, 24px 0 0 #27c93f;
+      margin-right: 30px;
+    }
+
+    .terminal {
+      margin: 0;
+      padding: 12px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.5;
+      color: #e6edf3;
+      background: #010409;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .terminal::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .terminal::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .terminal::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+    }
+
+    .terminal::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0 12px;
+      color: var(--text-muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+    }
+
+    .footer a {
+      color: var(--brand);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .footer a:hover {
+      color: var(--brand-hover);
+      text-decoration: underline;
+    }
+
+    .field-hint {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    @media (max-width: 980px) {
+      .row-two {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 8px 10px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .actions button {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>rkdeveloptool Web 版</h1>
-  <details>
-    <summary style="width: fit-content;">说明</summary>
-    <h3>仅支持 Chrome/Edge 等基于 Chromium 的浏览器</h3>
-    <h5>支持普通磁盘raw镜像（.img）、raw压缩固件（各种开源镜像，如 iStoreOS、OpenWRT 等，扩展名是.img.gz、.img.xz）、RKFW 固件（一般是安卓固件，扩展名也是.img）</h5>
-    <h5>支持大固件刷写，使用流式加载技术+虚拟文件系统，不会把整个固件加载到内存中</h5>
-    <h5>不建议在 Windows 下使用，因为 Windows 下有 Rockchip 官方的图形刷机工具。且可能需要安装 WinUSB 驱动，驱动又可能跟 Rockchip 驱动冲突。自行评估风险</h5>
-    <h4>一般刷机步骤：</h4>
-    <ol>
-      <li>设备进入 MASKROM 或 Loader 模式（通常是开机时按住某个按键，具体请搜索设备型号+MASKROM/Loader）</li>
-      <li>设备通过 USB 连接到电脑（通常是设备的 Type-C 接口，但也可能是 A 口）</li>
-      <li>选择固件</li>
-      <li>如果上一步日志没提示“检测到 RKFW 格式固件”，且设备是 MASKROM 模式，那么选择 Loader 文件</li>
-      <li>点击刷写固件按钮，此过程可能会弹出设备授权请求（MASKROM 模式最多两次），如果设备列表为空，请检查设备是否正确连接（如 USB 口是否正确，设备是否进入正确模式）</li>
-      <li>刷写完成后在“电源”菜单中选择相应操作（如重启或关机），或手动操作设备</li>
-    </ol>
-    <h5>如需检查设备状态，点击“选择 Rockchip 设备”按钮，列表为空说明没有设备连接或设备未进入正确模式。</h5>
-    <h5>如需刷写到不同的存储器，例如有 SPIROM 和 eMMC 的设备希望写入 eMMC，先加载Loader，然后切换存储，最后再刷写固件。</h5>
-  </details>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brandline">
+        <div class="brandmark" aria-hidden="true">
+          <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="trace" x1="23" y1="24" x2="70" y2="71" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#DDF8FF"/>
+                <stop offset="1" stop-color="#63D8C5"/>
+              </linearGradient>
+              <linearGradient id="chip" x1="36" y1="34" x2="60" y2="61" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#102A3D"/>
+                <stop offset="1" stop-color="#0B1826"/>
+              </linearGradient>
+            </defs>
+            <path d="M28 31.5H44.5" stroke="url(#trace)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M28 48H35" stroke="url(#trace)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M61.5 31.5H68" stroke="url(#trace)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M60 48H68" stroke="url(#trace)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M28 64.5H44.5" stroke="url(#trace)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M61.5 64.5H68" stroke="url(#trace)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M35 48H40L45 40.5L50 55L54.5 48H60" stroke="url(#trace)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="37" y="36" width="22" height="24" rx="6" fill="url(#chip)"/>
+            <rect x="39" y="38" width="18" height="20" rx="4.5" stroke="#8EE8D9" stroke-opacity="0.45" stroke-width="1.5"/>
+            <circle cx="48" cy="48" r="3.5" fill="#8EE8D9"/>
+          </svg>
+        </div>
+        <div class="brandtext">
+          <strong>rkdeveloptool Web</strong>
+          <span id="firmware-type">未选择固件</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div id="device-info" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">等待连接</div>
+        <div id="device-status-badge" class="status-badge disconnected">
+          <span class="status-dot"></span>
+          <span id="device-status-text">未连接</span>
+        </div>
+      </div>
+    </header>
 
-  <div>
-    <label for="pick-loader">选择Loader</label>
-    <input id="pick-loader" type="file" accept=".bin" />
-  </div>
-  <div>
-    <label for="pick-file">选择固件</label>
-    <input id="pick-file" type="file" accept=".bin,.img,.gz,.xz" />
-  </div>
+    <section class="workspace">
+      <div id="main-grid" class="row-two">
+        <article id="file-card" class="card">
+          <div class="field-grid">
+            <div>
+              <label for="pick-loader">选择 Loader</label>
+              <input id="pick-loader" type="file" accept=".bin" />
+              <div id="loader-summary" class="field-hint"></div>
+            </div>
+            <div>
+              <label for="pick-file">选择固件</label>
+              <input id="pick-file" type="file" accept=".bin,.img,.gz,.xz" />
+              <div id="file-summary" class="field-hint"></div>
+            </div>
+          </div>
+          
+          <div class="actions">
+            <button id="pick-device" class="secondary-btn" type="button">选择设备</button>
+            <button id="dl-loader" class="secondary-btn" type="button" disabled>加载 Loader</button>
+            <button id="dl-file" class="primary-btn" type="button" disabled>开始刷写</button>
+          </div>
+        </article>
 
-  <div>
-    <button id="pick-device">选择 Rockchip 设备</button><span id="device-info"></span>
-  </div>
+        <article id="rkfw-card" class="card" hidden>
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">刷写配置</h2>
+              <p id="firmware-summary" class="card-desc">识别到 RKFW 固件。</p>
+            </div>
+          </div>
 
-  <div>
-    <button id="dl-loader" disabled>加载Loader</button>
-    <button id="dl-file" disabled>刷写固件</button>
-    <select id="power">
-      <option value="">电源</option>
-      <option value="reboot">重启</option>
-      <option value="reboot-maskrom">重启到MASKROM</option>
-      <option value="power-off">关机</option>
-    </select>
-    <select id="change-storage">
-      <option value="">切换存储</option>
-      <option value="emmc">eMMC</option>
-      <option value="sd">SD</option>
-      <option value="spirom">SPIROM</option>
-    </select>
-  </div>
-  <div>
-    <input id="command" type="text" value="ld" style="width: 360px;" />
-    <button id="run">执行命令</button>
-  </div>
-  <div>
-    <button id="clear-output">清空日志</button>
-    <button id="copy-output">复制日志</button>
-    <button id="download-output">下载日志</button>
-    <span id="output-action-tip" aria-live="polite"></span>
-  </div>
+          <div class="summary-box">
+            <div id="partition-chip-row" class="chip-row"></div>
+            <label style="margin-top: 12px;">刷写模式</label>
+            <div class="segmented" role="tablist" style="margin-bottom: 12px;">
+              <button id="flash-mode-all" class="active" type="button">整包</button>
+              <button id="flash-mode-partition" type="button">自定义</button>
+            </div>
+            <div id="flash-mode-hint" class="field-hint"></div>
+            
+            <div id="custom-partition-section" style="display: none; margin-top: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="margin-bottom: 0;">选择刷写分区</label>
+                <button id="toggle-all-parts" class="ghost-btn" type="button" style="height: 24px; font-size: 11px; padding: 0 8px;">全选/取消</button>
+              </div>
+              <div id="partition-list" class="partition-list"></div>
+            </div>
+          </div>
+        </article>
 
-  <pre id="output" style="background:#111;color:#0f0;padding:12px;min-height:220px;max-height:400px;overflow:auto;"></pre>
+        <article id="device-card" class="card">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <h2 class="card-title">设备控制</h2>
+          </div>
 
-  <footer>
-    <a href="https://github.com/jjm2473/rktool-webusb" target="_blank" rel="noopener noreferrer">GitHub: jjm2473/rktool-webusb</a>
-  </footer>
+          <div style="display: flex; gap: 8px;">
+            <div class="segmented" style="flex: 1; display: flex;">
+              <button class="power-btn" type="button" data-action="reboot" style="flex: 1; padding: 0 4px; font-size: 12px;">重启</button>
+              <button class="power-btn" type="button" data-action="reboot-maskrom" style="flex: 1; padding: 0 4px; font-size: 12px;">MASKROM</button>
+              <button class="power-btn" type="button" data-action="power-off" style="flex: 1; padding: 0 4px; font-size: 12px;">关机</button>
+            </div>
+            <select id="change-storage" style="flex: 0 0 100px; padding: 0 8px; font-size: 12px;">
+              <option value="">存储</option>
+              <option value="emmc">eMMC</option>
+              <option value="sd">SD</option>
+              <option value="spirom">SPIROM</option>
+            </select>
+          </div>
+
+          <div class="inline-actions" style="margin-top: 8px; gap: 6px;">
+            <input id="command" type="text" value="ld" style="flex: 1;" placeholder="自定义命令" />
+            <button id="run" class="secondary-btn" type="button" style="padding: 0 12px; min-width: 50px;">执行</button>
+          </div>
+        </article>
+      </div>
+
+      <div class="progress-panel">
+        <div class="progress-top">
+          <span id="progress-label">等待任务</span>
+          <span id="progress-value">0%</span>
+        </div>
+        <progress id="progress-bar" value="0" max="100"></progress>
+      </div>
+
+      <section class="terminal-shell">
+        <div class="terminal-top">
+          <div>
+            <h2 class="terminal-title">实时终端</h2>
+          </div>
+          <div class="actions">
+            <button id="clear-output" class="ghost-btn" type="button">清空日志</button>
+            <button id="copy-output" class="ghost-btn" type="button">复制日志</button>
+            <button id="download-output" class="ghost-btn" type="button">下载日志</button>
+          </div>
+        </div>
+
+        <pre id="output" class="terminal"></pre>
+      </section>
+
+      <details class="card">
+        <summary>使用说明与注意事项</summary>
+        <p>仅支持 Chrome、Edge 等 Chromium 浏览器，且浏览器必须支持 WebUSB。</p>
+        <p>支持 raw 镜像、压缩镜像和 RKFW。大文件通过流式加载和虚拟文件系统处理，不会一次性占满内存。</p>
+        <ol>
+          <li>让设备进入 MASKROM 或 Loader 模式，并通过 USB 连接电脑。</li>
+          <li>选择固件。若识别为 RKFW，会自动解析制造商、型号和分区信息。</li>
+          <li>设备处于 MASKROM 且当前不是 RKFW 时，需要先选择 Loader。</li>
+          <li>点击“开始刷写”，浏览器弹出授权时允许访问设备。</li>
+          <li>完成后可在当前页直接执行重启、关机或切换存储。</li>
+        </ol>
+      </details>
+    </section>
+
+    <footer class="footer">
+      <span>rkdeveloptool WebUSB front-end</span>
+      <a href="https://github.com/jjm2473/rktool-webusb" target="_blank" rel="noopener noreferrer">GitHub: jjm2473/rktool-webusb</a>
+    </footer>
+  </main>
 
   <script type="module">
     import { createRKToolWorker } from './src/browser/worker-proxy.js?v=RKTOOLSRC_VER';
@@ -94,48 +865,58 @@
     const pickLoaderInput = document.getElementById('pick-loader');
     const dlLoaderBtn = document.getElementById('dl-loader');
     const pickFileInput = document.getElementById('pick-file');
-    const dlFileBtn = document.getElementById('dl-file');  
+    const dlFileBtn = document.getElementById('dl-file');
     const pickDeviceBtn = document.getElementById('pick-device');
     const deviceInfo = document.getElementById('device-info');
-    const powerSelect = document.getElementById('power');
+    const deviceStatusBadge = document.getElementById('device-status-badge');
+    const deviceStatusText = document.getElementById('device-status-text');
+    const powerBtns = document.querySelectorAll('.power-btn');
     const changeStorageSelect = document.getElementById('change-storage');
     const runBtn = document.getElementById('run');
     const commandInput = document.getElementById('command');
     const clearOutputBtn = document.getElementById('clear-output');
     const copyOutputBtn = document.getElementById('copy-output');
     const downloadOutputBtn = document.getElementById('download-output');
-    const outputActionTip = document.getElementById('output-action-tip');
+    const loaderSummary = document.getElementById('loader-summary');
+    const fileSummary = document.getElementById('file-summary');
+    const mainGrid = document.getElementById('main-grid');
+    const rkfwCard = document.getElementById('rkfw-card');
+    const firmwareType = document.getElementById('firmware-type');
+    const firmwareSummary = document.getElementById('firmware-summary');
+    const partitionChipRow = document.getElementById('partition-chip-row');
+    const flashModeAllBtn = document.getElementById('flash-mode-all');
+    const flashModePartitionBtn = document.getElementById('flash-mode-partition');
+    const flashModeHint = document.getElementById('flash-mode-hint');
+    const customPartitionSection = document.getElementById('custom-partition-section');
+    const partitionList = document.getElementById('partition-list');
+    const toggleAllPartsBtn = document.getElementById('toggle-all-parts');
+    const progressBar = document.getElementById('progress-bar');
+    const progressLabel = document.getElementById('progress-label');
+    const progressValue = document.getElementById('progress-value');
 
     let selectedLoader = null;
+    let selectedLoaderFile = null;
     let selectedFile = null;
     let rkfwVfs = null;
     let rkfwMeta = null;
     let usbConnected = false;
-    let outputActionTipTimer = null;
+    let busy = false;
+    let flashMode = 'all';
     let stdoutRateLimited = false;
     let stdoutLastSeen = 0;
-
-    function showOutputActionTip(text) {
-      outputActionTip.textContent = text;
-      if (outputActionTipTimer) {
-        clearTimeout(outputActionTipTimer);
-      }
-      outputActionTipTimer = setTimeout(() => {
-        outputActionTip.textContent = '';
-        outputActionTipTimer = null;
-      }, 3000);
-    }
+    let flashProgressTotal = 0;
+    let flashProgressDone = 0;
 
     function appendLine(text) {
-      output.textContent += `${text}\n`;
-      output.scrollTop = output.scrollHeight;
+      const nextLine = `${text}\n`;
+      output.textContent = `${nextLine}${output.textContent}`;
+      output.scrollTop = 0;
     }
 
     function clearOutput() {
       output.textContent = '';
-      showOutputActionTip('日志已清空');
+      appendLine('--- 日志已清空 ---');
     }
-    clearOutputBtn.addEventListener('click', clearOutput);
 
     function getOutputText() {
       return output.textContent || '';
@@ -147,10 +928,268 @@
       return `rktool-web-log-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.txt`;
     }
 
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes) || bytes < 0) {
+        return '未知';
+      }
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let value = bytes;
+      let unitIndex = 0;
+      while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+      }
+      return `${value.toFixed(value >= 100 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+    }
+
+    function getFlashableParts() {
+      if (!rkfwMeta) {
+        return [];
+      }
+      return rkfwMeta.parts.filter((part) => (
+        part.name !== 'parameter'
+        && part.name !== 'package-file'
+        && part.name !== 'bootloader'
+        && part.fileName !== null
+        && part.size > 0
+        && part.flashSector !== null
+      ));
+    }
+
+    function setDeviceStatus(kind, text) {
+      deviceStatusBadge.className = `status-badge ${kind}`;
+      deviceStatusText.textContent = text;
+    }
+
+    function resetProgress(text = '等待刷写任务') {
+      flashProgressTotal = 0;
+      flashProgressDone = 0;
+      progressBar.value = 0;
+      progressLabel.textContent = text;
+      progressValue.textContent = '0%';
+    }
+
+    function updateProgress(done, total, label) {
+      flashProgressDone = Math.max(0, done);
+      flashProgressTotal = Math.max(total, 0);
+      const ratio = flashProgressTotal > 0 ? Math.min(flashProgressDone / flashProgressTotal, 1) : 0;
+      progressBar.value = Math.round(ratio * 100);
+      progressLabel.textContent = label;
+      progressValue.textContent = `${Math.round(ratio * 100)}%`;
+    }
+
+    function renderPartitionChips(parts) {
+      partitionChipRow.innerHTML = '';
+      if (!parts.length) {
+        const chip = document.createElement('span');
+        chip.className = 'chip muted';
+        chip.textContent = '当前没有可列出的 RKFW 分区';
+        partitionChipRow.appendChild(chip);
+        return;
+      }
+      parts.forEach((part) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = `${part.name} · ${formatBytes(part.size)}`;
+        partitionChipRow.appendChild(chip);
+      });
+    }
+
+    function renderPartitionSelect() {
+      const flashableParts = getFlashableParts();
+      partitionList.innerHTML = '';
+
+      if (!rkfwMeta || flashableParts.length === 0) {
+        return;
+      }
+
+      flashableParts.forEach((part) => {
+        const item = document.createElement('div');
+        item.className = 'partition-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = part.name;
+        checkbox.id = `part-cb-${part.name}`;
+        checkbox.checked = true;
+
+        const label = document.createElement('label');
+        label.htmlFor = `part-cb-${part.name}`;
+        label.className = 'partition-info';
+        label.innerHTML = `
+          <span class="partition-name">${part.name}</span>
+          <span class="partition-size">${formatBytes(part.size)}</span>
+        `;
+
+        item.appendChild(checkbox);
+        item.appendChild(label);
+        
+        item.addEventListener('click', (e) => {
+          if (e.target !== checkbox && e.target.tagName !== 'LABEL') {
+            checkbox.checked = !checkbox.checked;
+          }
+        });
+
+        partitionList.appendChild(item);
+      });
+    }
+
+    toggleAllPartsBtn.addEventListener('click', () => {
+      const checkboxes = partitionList.querySelectorAll('input[type="checkbox"]');
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+    });
+
+    function updateRkfwPanelVisibility() {
+      const visible = !!rkfwMeta;
+      rkfwCard.hidden = !visible;
+      mainGrid.classList.toggle('rkfw-mode', visible);
+    }
+
+    function updateFlashModeUI() {
+      const canUsePartitionMode = rkfwMeta && getFlashableParts().length > 0;
+      if (!canUsePartitionMode && flashMode === 'partition') {
+        flashMode = 'all';
+      }
+
+      flashModeAllBtn.classList.toggle('active', flashMode === 'all');
+      flashModePartitionBtn.classList.toggle('active', flashMode === 'partition');
+      flashModePartitionBtn.disabled = !canUsePartitionMode || busy;
+      flashModeAllBtn.disabled = busy;
+
+      if (!rkfwMeta) {
+        customPartitionSection.style.display = 'none';
+        flashModeHint.textContent = '整包模式将自动处理全部分区。';
+      } else if (flashMode === 'partition') {
+        customPartitionSection.style.display = 'block';
+        flashModeHint.textContent = '自定义模式允许您自由选择要刷写的具体分区，不会更新分区表。';
+      } else {
+        customPartitionSection.style.display = 'none';
+        flashModeHint.textContent = '整包模式将自动刷写 Loader、分区表及所有内置分区。';
+      }
+    }
+
+    function updateActionState() {
+      const hasFlashTarget = !!selectedFile;
+      const canLoadLoader = !!selectedLoader || !!rkfwVfs;
+      pickLoaderInput.disabled = busy;
+      pickFileInput.disabled = busy;
+      pickDeviceBtn.disabled = busy;
+      dlLoaderBtn.disabled = busy || !canLoadLoader;
+      dlFileBtn.disabled = busy || !hasFlashTarget;
+      powerBtns.forEach(btn => btn.disabled = busy);
+      changeStorageSelect.disabled = busy;
+      runBtn.disabled = busy;
+      commandInput.disabled = busy;
+      clearOutputBtn.disabled = busy;
+      copyOutputBtn.disabled = busy;
+      downloadOutputBtn.disabled = busy;
+      updateFlashModeUI();
+    }
+
+    function setBusy(nextBusy, label) {
+      busy = nextBusy;
+      if (busy) {
+        setDeviceStatus('busy', label);
+      } else if (usbConnected) {
+        const device = window.rkdev;
+        const name = device?.productName || '已连接设备';
+        setDeviceStatus('connected', `${name} 已连接`);
+      } else {
+        setDeviceStatus('disconnected', '未连接设备');
+      }
+      updateActionState();
+    }
+
+    function describeSelectedFile(file) {
+      if (!file) {
+        firmwareType.textContent = '未选择';
+        fileSummary.textContent = '支持 .img, .gz, .xz, RKFW';
+        return;
+      }
+
+      const lowerName = file.name.toLowerCase();
+      if (lowerName.endsWith('.img.gz')) {
+        firmwareType.textContent = 'GZip 镜像';
+      } else if (lowerName.endsWith('.img.xz')) {
+        firmwareType.textContent = 'XZ 镜像';
+      } else if (rkfwMeta) {
+        firmwareType.textContent = 'RKFW 固件';
+      } else {
+        firmwareType.textContent = '原始镜像';
+      }
+      fileSummary.textContent = `${file.name} (${formatBytes(file.size)})`;
+    }
+
+    function updateFirmwareSummary() {
+      if (!selectedFile) {
+        firmwareSummary.textContent = '尚未选择固件';
+        renderPartitionChips([]);
+        renderPartitionSelect();
+        updateRkfwPanelVisibility();
+        describeSelectedFile(null);
+        setLoaderSummary(selectedLoaderFile);
+        updateFlashModeUI();
+        return;
+      }
+
+      if (!rkfwMeta) {
+        firmwareSummary.textContent = '普通 Raw 镜像模式';
+        renderPartitionChips([]);
+        renderPartitionSelect();
+        updateRkfwPanelVisibility();
+        describeSelectedFile(selectedFile);
+        setLoaderSummary(selectedLoaderFile);
+        updateFlashModeUI();
+        return;
+      }
+
+      const flashableParts = getFlashableParts();
+      firmwareSummary.textContent = `${rkfwMeta.model || 'RKFW'} / ${flashableParts.length} 分区`;
+      renderPartitionChips(flashableParts);
+      renderPartitionSelect();
+      updateRkfwPanelVisibility();
+      describeSelectedFile(selectedFile);
+      updateFlashModeUI();
+    }
+
+    function setLoaderSummary(file) {
+      if (!file) {
+        loaderSummary.textContent = rkfwVfs
+          ? 'RKFW 已内置 Loader'
+          : 'MASKROM 模式需选择 Loader';
+        return;
+      }
+      loaderSummary.textContent = `${file.name} (${formatBytes(file.size)})`;
+    }
+
+    function getSelectedPlan() {
+      if (!rkfwMeta || flashMode !== 'partition') {
+        return {
+          label: rkfwMeta ? '整包刷写' : '镜像刷写',
+          includeParts: null,
+          totalParts: rkfwMeta ? getFlashableParts().length : 1,
+        };
+      }
+
+      const checkedParts = Array.from(partitionList.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(cb => cb.value);
+      
+      if (checkedParts.length === 0) {
+        throw new Error('请选择要刷写的分区');
+      }
+
+      return {
+        label: `自定义刷写 (${checkedParts.length} 分区)`,
+        includeParts: checkedParts,
+        totalParts: checkedParts.length,
+      };
+    }
+
     async function copyOutput() {
       const text = getOutputText();
       if (!text.trim()) {
-        showOutputActionTip('日志为空，无需复制');
+        appendLine('日志为空，无需复制');
         return;
       }
 
@@ -174,16 +1213,16 @@
             throw new Error('浏览器拒绝复制');
           }
         }
-        showOutputActionTip('日志已复制');
+        appendLine('--- 日志已复制到剪贴板 ---');
       } catch (error) {
-        showOutputActionTip(`复制日志失败: ${String(error.message || error)}`);
+        appendLine(`复制日志失败: ${String(error.message || error)}`);
       }
     }
 
     function downloadOutput() {
       const text = getOutputText();
       if (!text.trim()) {
-        showOutputActionTip('日志为空，无需下载');
+        appendLine('日志为空，无需下载');
         return;
       }
 
@@ -197,25 +1236,46 @@
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      showOutputActionTip(`日志下载已开始: ${fileName}`);
+      appendLine(`--- 日志下载已开始: ${fileName} ---`);
     }
 
+    clearOutputBtn.addEventListener('click', clearOutput);
     copyOutputBtn.addEventListener('click', () => {
       void copyOutput();
     });
     downloadOutputBtn.addEventListener('click', downloadOutput);
 
+    flashModeAllBtn.addEventListener('click', () => {
+      flashMode = 'all';
+      updateFlashModeUI();
+    });
+
+    flashModePartitionBtn.addEventListener('click', () => {
+      if (!rkfwMeta || getFlashableParts().length === 0) {
+        return;
+      }
+      flashMode = 'partition';
+      updateFlashModeUI();
+    });
+
     async function onUsbConnect(device) {
       appendLine(`设备已连接: ${device.productName} (0x${device.productId.toString(16)})`);
       window.rkdev = device;
       usbConnected = true;
-      deviceInfo.textContent = `${device.productName} (0x${device.productId.toString(16)})`;
-      await wrapper.runCommand(['ld'], {requestDevice: false});
+      deviceInfo.textContent = `${device.productName || '未知设备'} / 0x${device.productId.toString(16)}`;
+      if (!busy) {
+        setDeviceStatus('connected', `${device.productName || '设备'} 已连接`);
+      }
+      await wrapper.runCommand(['ld'], { requestDevice: false });
     }
+
     function onUsbDisconnect(device) {
       appendLine(`设备已断开: ${device.productName} (0x${device.productId.toString(16)})`);
       usbConnected = false;
-      deviceInfo.textContent = '';
+      deviceInfo.textContent = '等待连接';
+      if (!busy) {
+        setDeviceStatus('disconnected', '未连接设备');
+      }
     }
 
     appendLine('初始化中...');
@@ -223,12 +1283,15 @@
       appendLine('当前浏览器不支持 WebUSB API，请使用支持 WebUSB 的浏览器（如 Chrome/Edge）');
       throw new Error('WebUSB not supported');
     }
-    navigator.usb.addEventListener("connect", async (event) => {
+
+    navigator.usb.addEventListener('connect', async (event) => {
       await onUsbConnect(event.device);
     });
-    navigator.usb.addEventListener("disconnect", (event) => {
+
+    navigator.usb.addEventListener('disconnect', (event) => {
       onUsbDisconnect(event.device);
     });
+
     setTimeout(() => {
       navigator.usb.getDevices().then(async (devices) => {
         if (devices.length > 0) {
@@ -236,21 +1299,22 @@
         }
       });
     }, 500);
-    const appendStdio = (function(){
-      let last = '';
+
+    const appendStdio = (() => {
+      let lastLineWasProgress = false;
       return function(text) {
-        if (last == text) {
-          return;
+        // 去除 ANSI 转义序列和一些控制字符
+        const cleanText = text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
+        
+        if (!cleanText) return;
+
+        // 如果是常见的刷屏进度信息，且当前正处于速率限制模式（刷机中），则过滤掉
+        // 我们已经有进度条了，不需要这些刷屏的原始日志
+        if (cleanText.includes('Write LBA') || cleanText.includes('%')) {
+          if (stdoutRateLimited) return;
         }
-        last = text;
-        if (stdoutRateLimited && !text.startsWith('Erase ')) {
-          const now = new Date().getTime();
-          if (now - stdoutLastSeen < 200) {
-            return;
-          }
-          stdoutLastSeen = now;
-        }
-        appendLine(text);
+
+        appendLine(cleanText);
       };
     })();
 
@@ -272,8 +1336,6 @@
     appendLine('初始化完成（运行在 Worker 中）');
 
     pickLoaderInput.addEventListener('change', async () => {
-      if (!rkfwVfs)
-        dlLoaderBtn.disabled = true;
       if (selectedLoader !== null) {
         wrapper.umount(selectedLoader.mountPoint);
         selectedLoader = null;
@@ -281,212 +1343,284 @@
 
       try {
         const loader = pickLoaderInput.files?.[0] || null;
-        if (!loader)
+        if (!loader) {
+          selectedLoaderFile = null;
+          setLoaderSummary(null);
+          updateActionState();
           return;
+        }
         selectedLoader = await wrapper.mountFile('loader', loader);
-        appendLine(`已选择Loader: ${loader.name} (${loader.size} bytes)`);
-        dlLoaderBtn.disabled = false;
+        selectedLoaderFile = loader;
+        appendLine(`已选择 Loader: ${loader.name} (${loader.size} bytes)`);
+        setLoaderSummary(loader);
       } catch (error) {
         appendLine(String(error.message || error));
+      } finally {
+        updateActionState();
       }
     });
+
     dlLoaderBtn.addEventListener('click', async () => {
-      if (usbConnected && window.rkdev.serialNumber) {
-        if (!confirm('当前设备看起来已加载 Loader，重复加载 Loader 可能会卡死，是否继续？'))
-          return;
-        appendLine('强制重新加载 Loader 中...，如果卡死请刷新页面');
+      if (busy) {
+        return;
       }
-      const loaderToUse = rkfwVfs?rkfwVfs+"/MiniLoaderAll.bin":selectedLoader.virtualPath;
+      if (usbConnected && window.rkdev.serialNumber) {
+        if (!confirm('当前设备看起来已加载 Loader，重复加载 Loader 可能会卡死，是否继续？')) {
+          return;
+        }
+        appendLine('强制重新加载 Loader 中... 如果卡死请刷新页面');
+      }
+
+      const loaderToUse = rkfwVfs ? `${rkfwVfs}/MiniLoaderAll.bin` : selectedLoader?.virtualPath;
+      if (!loaderToUse) {
+        appendLine('没有可用的 Loader');
+        return;
+      }
+
+      setBusy(true, '加载 Loader 中');
       try {
-        await wrapper.runCommand(['db', loaderToUse], {requestDevice: !usbConnected});
-        appendLine('Loader 加载完成，可能要点击“选择 Rockchip 设备”按钮重新连接');
+        await wrapper.runCommand(['db', loaderToUse], { requestDevice: !usbConnected });
+        appendLine('Loader 加载完成，可能需要重新选择设备');
       } catch (error) {
         appendLine(String(error.message || error));
+      } finally {
+        setBusy(false);
       }
     });
 
     pickFileInput.addEventListener('change', async () => {
-      dlFileBtn.disabled = true;
-      if (!selectedLoader)
-        dlLoaderBtn.disabled = true;
       if (rkfwVfs) {
         wrapper.umount(rkfwVfs);
         rkfwVfs = null;
         rkfwMeta = null;
       }
+
       try {
         selectedFile = pickFileInput.files?.[0] || null;
-        if (!selectedFile)
+        if (!selectedFile) {
+          updateFirmwareSummary();
+          updateActionState();
           return;
+        }
+
         appendLine(`已选择固件: ${selectedFile.name} (${selectedFile.size} bytes)`);
         if (await isRkfwBlob(selectedFile)) {
           appendLine('检测到 RKFW 格式固件，正在解析元数据...');
           rkfwMeta = await parseRkfwBlob(selectedFile);
           appendLine(`固件声明的制造商: ${rkfwMeta.manufacturer}, 型号: ${rkfwMeta.model}`);
-          const metapart = [];
-          const realPart = [];
-          rkfwMeta.parts.forEach(part => {
-            if (part.name === 'parameter' || part.name === 'package-file' || part.name === 'bootloader')
-              metapart.push(part);
-            else if (part.flashSector !== null && part.fileName !== null)
-              realPart.push(part);
+          const metaParts = [];
+          const realParts = [];
+          rkfwMeta.parts.forEach((part) => {
+            if (part.name === 'parameter' || part.name === 'package-file' || part.name === 'bootloader') {
+              metaParts.push(part);
+            } else if (part.flashSector !== null && part.fileName !== null) {
+              realParts.push(part);
+            }
           });
-          appendLine(`固件包含 ${realPart.length} 个可刷写分区: ${realPart.map(e => e.name).join(', ')} 。以及其他数据 ${metapart.map(e => e.name).join(', ')}`);
-          rkfwVfs = (await wrapper.mountFile('rkfw', {source: selectedFile, meta: rkfwMeta}, true)).mountPoint;
-          // RKFW 固件包含 Loader，所以即使没有单独选择Loader文件，也可以刷机
-          dlLoaderBtn.disabled = false;
+          appendLine(`固件包含 ${realParts.length} 个可刷写分区: ${realParts.map((part) => part.name).join(', ')}。以及其他数据 ${metaParts.map((part) => part.name).join(', ')}`);
+          rkfwVfs = (await wrapper.mountFile('rkfw', { source: selectedFile, meta: rkfwMeta }, true)).mountPoint;
+          setLoaderSummary(null);
+        } else {
+          flashMode = 'all';
+          setLoaderSummary(selectedLoaderFile);
         }
-        dlFileBtn.disabled = false;
       } catch (error) {
         appendLine(String(error.message || error));
+      } finally {
+        updateFirmwareSummary();
+        updateActionState();
       }
     });
 
+    async function handleFlashStage(stage, plan) {
+      if (stage.type === 'idb') {
+        if (stage.state === 'start') {
+          appendLine('正在刷写 IDB...');
+          progressLabel.textContent = '写入 Loader / IDB';
+        } else if (stage.state === 'successed') {
+          appendLine('IDB 刷写成功');
+        } else if (stage.state === 'failed') {
+          appendLine('IDB 刷写失败');
+        }
+        return;
+      }
+
+      if (stage.type === 'gpt') {
+        if (stage.state === 'start') {
+          appendLine('发现 parameter 文件，正在更新分区表...');
+          progressLabel.textContent = '更新分区表';
+        } else if (stage.state === 'successed') {
+          appendLine('分区表刷写成功');
+        } else if (stage.state === 'failed') {
+          appendLine('分区表刷写失败');
+        }
+        return;
+      }
+
+      if (stage.type === 'part') {
+        if (stage.state === 'start') {
+          appendLine(`正在刷写分区 ${stage.object}...`);
+          progressLabel.textContent = `正在刷写 ${stage.object}`;
+        } else if (stage.state === 'successed') {
+          flashProgressDone += 1;
+          appendLine(`分区 ${stage.object} 刷写成功`);
+          updateProgress(flashProgressDone, plan.totalParts, `已完成 ${flashProgressDone}/${plan.totalParts}`);
+        } else if (stage.state === 'failed') {
+          appendLine(`分区 ${stage.object} 刷写失败`);
+        } else if (stage.state === 'skipped') {
+          flashProgressDone += 1;
+          appendLine(`分区 ${stage.object} 没有指定文件或 Flash 偏移量，跳过刷写`);
+          updateProgress(flashProgressDone, plan.totalParts, `已处理 ${flashProgressDone}/${plan.totalParts}`);
+        }
+        return;
+      }
+
+      if (stage.type === 'parts') {
+        if (stage.state === 'start') {
+          stdoutRateLimited = true;
+          updateProgress(0, plan.totalParts, plan.label);
+        } else {
+          stdoutRateLimited = false;
+        }
+      }
+    }
+
     dlFileBtn.addEventListener('click', async () => {
+      if (!selectedFile || busy) {
+        return;
+      }
+
       let result;
       try {
+        const plan = getSelectedPlan();
+        resetProgress(plan.label);
+        setBusy(true, `刷写中: ${plan.label}`);
+
         if (!usbConnected) {
           await requestDevice();
         }
 
         if (!window.rkdev.serialNumber) {
           if (selectedLoader == null && !rkfwVfs) {
-            appendLine('MASKROM 模式且非 RKFW 固件需要选择 Loader 文件！');
+            appendLine('MASKROM 模式且非 RKFW 固件需要选择 Loader 文件');
             return;
           }
           appendLine('加载 Loader 中...');
-          const loaderToUse = rkfwVfs ? rkfwVfs + "/MiniLoaderAll.bin" : selectedLoader.virtualPath;
-          result = await wrapper.runCommand(['db', loaderToUse], {requestDevice: !usbConnected});
+          const loaderToUse = rkfwVfs ? `${rkfwVfs}/MiniLoaderAll.bin` : selectedLoader.virtualPath;
+          result = await wrapper.runCommand(['db', loaderToUse], { requestDevice: !usbConnected });
           if (result.exitCode === 0) {
             appendLine('Loader 加载完成');
           } else {
             appendLine('Loader 加载失败');
             return;
           }
-          // Loader 加载完成后设备会重新连接，需要重新检查usbConnected
-          // 在 worker 里执行 sleep 是为了防止浏览器的安全机制认为新的 requestDevice 请求不是用户触发的，从而被拒绝（SecurityError）
           await wrapper.sleep(500);
           if (!usbConnected) {
-            appendLine('设备ID可能发生变化，请重新选择设备（名称一般是USB-MSC，关闭浏览器之前，同一设备只需授权一次）...');
+            appendLine('设备 ID 可能发生变化，请重新选择设备（名称一般是 USB-MSC）...');
             await requestDevice();
           }
         }
 
-        appendLine('刷写固件中...');
+        appendLine(`开始执行: ${plan.label}`);
         const startTime = new Date().getTime();
         if (rkfwVfs) {
-          appendLine('此固件为 RKFW 固件，按分区刷写');
-          result = await wrapper.flashRKFW({mountPoint: rkfwVfs, meta: rkfwMeta}, async (stage) => {
-            if (stage.type === 'idb') {
-              if (stage.state === 'start') {
-                appendLine('正在刷写IDB...');
-              } else if (stage.state === 'successed') {
-                appendLine('IDB 刷写成功');
-              } else if (stage.state === 'failed') {
-                appendLine('IDB 刷写失败');
-              }
-              return;
-            }
-
-            if (stage.type === 'gpt') {
-              if (stage.state === 'start') {
-                appendLine('发现 parameter 文件，正在更新分区表...');
-              } else if (stage.state === 'successed') {
-                appendLine('分区表刷写成功');
-              } else if (stage.state === 'failed') {
-                appendLine('分区表刷写失败');
-              }
-              return;
-            }
-
-            if (stage.type === 'part') {
-              if (stage.state === 'start') {
-                appendLine(`正在刷写分区 ${stage.object}...`);
-              } else if (stage.state === 'successed') {
-                appendLine(`分区 ${stage.object} 刷写成功`);
-              } else if (stage.state === 'failed') {
-                appendLine(`分区 ${stage.object} 刷写失败`);
-              } else if (stage.state === 'skipped') {
-                appendLine(`分区 ${stage.object} 没有指定文件或 Flash 偏移量，跳过刷写`);
-              }
-              return;
-            }
-
-            if (stage.type === 'parts') {
-              if (stage.state === 'start')
-                stdoutRateLimited = true;
-              else
-                stdoutRateLimited = false;
-            }
-          });
+          if (plan.includeParts) {
+            appendLine(`此固件为 RKFW 固件，仅刷写分区: ${plan.includeParts.join(', ')}`);
+          } else {
+            appendLine('此固件为 RKFW 固件，按分区顺序整包刷写');
+          }
+          result = await wrapper.flashRKFW(
+            { mountPoint: rkfwVfs, meta: rkfwMeta },
+            plan.includeParts ? { includeParts: plan.includeParts } : {},
+            async (stage) => {
+              await handleFlashStage(stage, plan);
+            },
+          );
         } else {
           stdoutRateLimited = true;
+          updateProgress(0, 1, '写入 raw 镜像');
           result = await wrapper.runCommand(['wl', '0', '$FILE'], {
             fileSource: selectedFile,
             gunzip: selectedFile.name.endsWith('.img.gz') || selectedFile.name.endsWith('.img.xz'),
-            fileName: "fw",
+            fileName: 'fw',
             replaceToken: '$FILE',
           });
+          updateProgress(1, 1, 'raw 镜像刷写完成');
         }
+
         const endTime = new Date().getTime();
         const duration = (endTime - startTime) / 1000;
         if (result.exitCode === 0) {
+          updateProgress(plan.totalParts || 1, plan.totalParts || 1, `完成，用时 ${duration.toFixed(2)} 秒`);
           appendLine(`固件刷写成功，耗时 ${duration.toFixed(2)} 秒`);
         } else {
           appendLine('固件刷写失败');
-          return;
         }
       } catch (error) {
         appendLine(String(error.message || error));
       } finally {
         stdoutRateLimited = false;
+        setBusy(false);
       }
     });
 
     pickDeviceBtn.addEventListener('click', async () => {
-      let device;
       try {
+        setBusy(true, '等待设备授权');
         await requestDevice();
       } catch (error) {
         appendLine(String(error.message || error));
+      } finally {
+        setBusy(false);
       }
     });
 
-    powerSelect.addEventListener('change', async () => {
-      const action = powerSelect.value;
-      powerSelect.value = "";
-      const options = {
-        requestDevice: !usbConnected,
-      };
-      if (action === '')
-        return;
-      try {
-        let cmdArgs = null;
-        if (action === 'reboot') {
-          cmdArgs = ['rd'];
-        } else if (action === 'reboot-maskrom') {
-          cmdArgs = ['rd', '3'];
-        } else if (action === 'power-off') {
-          cmdArgs = ['rd', '2'];
-        } else {
+    powerBtns.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const action = btn.dataset.action;
+        if (!action) {
           return;
         }
-        let result = await wrapper.runCommand(cmdArgs, options);
-        appendLine(`已执行: 电源 ${action} 结果 ${result.exitCode==0 ? '成功' : '失败'}`);
-      } catch (error) {
-        appendLine(String(error.message || error));
-      }
+
+        const options = {
+          requestDevice: !usbConnected,
+        };
+
+        try {
+          setBusy(true, '执行电源操作');
+          let cmdArgs = null;
+          if (action === 'reboot') {
+            cmdArgs = ['rd'];
+          } else if (action === 'reboot-maskrom') {
+            cmdArgs = ['rd', '3'];
+          } else if (action === 'power-off') {
+            cmdArgs = ['rd', '2'];
+          } else {
+            return;
+          }
+          const result = await wrapper.runCommand(cmdArgs, options);
+          appendLine(`已执行: 电源 ${action} 结果 ${result.exitCode === 0 ? '成功' : '失败'}`);
+        } catch (error) {
+          appendLine(String(error.message || error));
+        } finally {
+          setBusy(false);
+        }
+      });
     });
 
     changeStorageSelect.addEventListener('change', async () => {
       const action = changeStorageSelect.value;
-      changeStorageSelect.value = "";
+      changeStorageSelect.value = '';
+      if (!action) {
+        return;
+      }
+
       const options = {
         requestDevice: !usbConnected,
       };
-      if (action === '')
-        return;
+
       try {
+        setBusy(true, '切换存储介质');
         let cmdArgs = null;
         if (action === 'emmc') {
           cmdArgs = ['cs', '1'];
@@ -497,10 +1631,12 @@
         } else {
           return;
         }
-        let result = await wrapper.runCommand(cmdArgs, options);
-        appendLine(`已执行: 切换存储到 ${action} 结果 ${result.exitCode==0 ? '成功' : '失败'}`);
+        const result = await wrapper.runCommand(cmdArgs, options);
+        appendLine(`已执行: 切换存储到 ${action} 结果 ${result.exitCode === 0 ? '成功' : '失败'}`);
       } catch (error) {
         appendLine(String(error.message || error));
+      } finally {
+        setBusy(false);
       }
     });
 
@@ -518,14 +1654,26 @@
 
       if (selectedFile) {
         options.fileSource = selectedFile;
-        options.fileName = selectedFile.name;
+        options.fileName = 'fw';
         options.replaceToken = '$FILE';
+        options.gunzip = selectedFile.name.endsWith('.img.gz') || selectedFile.name.endsWith('.img.xz');
       }
 
-      appendLine(`> ${args.join(' ')}`);
-      const result = await wrapper.runCommand(args, options);
-      appendLine(`exit=${result.exitCode}`);
+      try {
+        setBusy(true, '执行自定义命令');
+        const result = await wrapper.runCommand(args, options);
+        appendLine(`命令执行完成，退出码 ${result.exitCode}`);
+      } catch (error) {
+        appendLine(String(error.message || error));
+      } finally {
+        setBusy(false);
+      }
     });
+
+    setLoaderSummary(null);
+    updateFirmwareSummary();
+    updateActionState();
+    resetProgress();
   </script>
 </body>
 </html>

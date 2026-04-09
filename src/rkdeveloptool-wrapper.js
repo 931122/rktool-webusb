@@ -258,17 +258,33 @@ export async function createRKDevelopToolWrapper(options = {}) {
     };
   }
 
-  const flashRKFW = async function(rkfwVfs, onStage) {
-    await onStage({type:'idb', state:'start'});
-    let result = await runCommand(['ul', rkfwVfs.mountPoint + "/MiniLoaderAll.bin"]);
-    if (result.exitCode === 0) {
-      await onStage({type:'idb', state:'successed'});
-    } else {
-      await onStage({type:'idb', state:'failed'});
-      return result;
+  const flashRKFW = async function(rkfwVfs, optionsOrOnStage, onStageArg) {
+    const options = typeof optionsOrOnStage === 'function' || optionsOrOnStage == null
+      ? {}
+      : optionsOrOnStage;
+    const onStage = typeof optionsOrOnStage === 'function'
+      ? optionsOrOnStage
+      : (typeof onStageArg === 'function' ? onStageArg : async () => {});
+    const requestedPartNames = Array.isArray(options.includeParts) && options.includeParts.length > 0
+      ? new Set(options.includeParts)
+      : null;
+    const shouldWriteIdb = requestedPartNames === null && options.skipIdb !== true;
+    const shouldWriteGpt = requestedPartNames === null && options.skipGpt !== true;
+    let result = { exitCode: 0 };
+
+    if (shouldWriteIdb) {
+      await onStage({type:'idb', state:'start'});
+      result = await runCommand(['ul', rkfwVfs.mountPoint + "/MiniLoaderAll.bin"]);
+      if (result.exitCode === 0) {
+        await onStage({type:'idb', state:'successed'});
+      } else {
+        await onStage({type:'idb', state:'failed'});
+        return result;
+      }
     }
+
     const parameter = rkfwVfs.meta.parts.find(part => part.name === 'parameter');
-    if (parameter) {
+    if (shouldWriteGpt && parameter?.fileName) {
       await onStage({type:'gpt', state:'start'});
       result = await runCommand(['gpt', rkfwVfs.mountPoint + "/" + parameter.fileName]);
       if (result.exitCode === 0) {
@@ -278,9 +294,13 @@ export async function createRKDevelopToolWrapper(options = {}) {
         return result;
       }
     }
+
     await onStage({type:'parts', state:'start'});
     for (const part of rkfwVfs.meta.parts) {
       if (part.name === 'parameter' || part.name === 'package-file' || part.name === 'bootloader') {
+        continue;
+      }
+      if (requestedPartNames && !requestedPartNames.has(part.name)) {
         continue;
       }
       if (part.fileName == null || part.size === 0) {

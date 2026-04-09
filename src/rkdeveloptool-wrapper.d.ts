@@ -48,6 +48,12 @@ export interface RkfwVfs {
   meta: RkfwInfo;
 }
 
+export interface FlashRKFWOptions {
+  includeParts?: string[];
+  skipIdb?: boolean;
+  skipGpt?: boolean;
+}
+
 export type RkObjectType = 'idb' | 'gpt' | 'parm' | 'parts' | 'part';
 export type FlashingState = 'start' | 'successed' | 'failed' | 'skipped';
 
@@ -70,7 +76,7 @@ export interface RkdeveloptoolWrapper {
   mountFile(name: string, source: FileSource | string | Rkfw, gunzip?: boolean, rkfw?: boolean): Promise<MountFileResult>;
   umount(mountPoint: string): void;
   runCommand(args: string[], options?: RunCommandOptions): Promise<RunCommandResult>;
-  flashRKFW(rkfwVfs: RkfwVfs, onStage?: (stage: RkfwFlashStage) => Promise<void>): Promise<RunCommandResult>;
+  flashRKFW(rkfwVfs: RkfwVfs, options?: FlashRKFWOptions, onStage?: (stage: RkfwFlashStage) => Promise<void>): Promise<RunCommandResult>;
 }
 
 export interface WrapperCreateOptions {

@@ -74,6 +74,10 @@ fi
 mkdir -p "$DIST_DIR" "$LIBUSB_BUILD_DIR" "$WASM_CMAKE_SRC_DIR" "$WASM_BUILD_DIR"
 
 if [[ ! -f "$LIBUSB_STATIC_LIB" ]]; then
+  pushd "$LIBUSB_SRC_DIR"  >/dev/null
+  ls
+  ./bootstrap.sh
+  popd >/dev/null
   pushd "$LIBUSB_BUILD_DIR" >/dev/null
   emconfigure "$LIBUSB_SRC_DIR/configure" \
     --host=wasm32-unknown-emscripten \

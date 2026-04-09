@@ -180,10 +180,10 @@ export class RKToolWorkerProxy {
     return result;
   }
 
-  async flashRKFW(rkfwVfs, onStage = null) {
+  async flashRKFW(rkfwVfs, options = {}, onStage = null) {
     let reqId = null;
     try {
-      const request = this.sendRequestWithId('flashRKFW', { rkfwVfs }, (id) => {
+      const request = this.sendRequestWithId('flashRKFW', { rkfwVfs, options }, (id) => {
         this.pendingStageCallbacks.set(id, onStage);
         reqId = id;
       });
@@ -225,7 +225,7 @@ export async function createRKToolWorker(options = {}) {
     mountFile: (name, source, rkfw) => proxy.mountFile(name, source, rkfw),
     umount: (mountPoint) => proxy.umount(mountPoint),
     runCommand: (args, options) => proxy.runCommand(args, options),
-    flashRKFW: (rkfwVfs, onStage) => proxy.flashRKFW(rkfwVfs, onStage),
+    flashRKFW: (rkfwVfs, options, onStage) => proxy.flashRKFW(rkfwVfs, options, onStage),
     sleep: (duration) => proxy.sleep(duration),
     terminate: () => proxy.terminate(),
   };

@@ -165,8 +165,8 @@ self.addEventListener('message', async (event) => {
         if (!wrapper) {
           throw new Error('Wrapper not initialized');
         }
-        const { rkfwVfs } = params || {};
-        const result = await wrapper.flashRKFW(rkfwVfs, async (stage) => {
+        const { rkfwVfs, options } = params || {};
+        const result = await wrapper.flashRKFW(rkfwVfs, options, async (stage) => {
           const callbackId = ++flashStageCallbackId;
           const callbackDone = new Promise((resolve, reject) => {
             pendingFlashStageCallbacks.set(callbackId, { resolve, reject });
