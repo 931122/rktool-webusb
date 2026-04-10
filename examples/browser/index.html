@@ -1323,9 +1323,20 @@
         return [];
       }
 
-      const entries = [];
+      const candidates = [];
+
+      function getEntryPriority(entry) {
+        if (entry.name === 'bootloader') {
+          return 3;
+        }
+        if (entry.name === 'parameter') {
+          return 2;
+        }
+        return 1;
+      }
+
       if (rkfwMeta.loader?.size > 0) {
-        entries.push({
+        candidates.push({
           name: 'bootloader',
           label: rkfwMeta.loader.name || 'MiniLoaderAll.bin',
           downloadName: rkfwMeta.loader.name || 'MiniLoaderAll.bin',
@@ -1344,7 +1355,7 @@
         const downloadName = part.name === 'parameter'
           ? 'parameter.txt'
           : (part.fileName || `${part.name}.img`);
-        entries.push({
+        candidates.push({
           name: part.name,
           label: downloadName,
           downloadName,
@@ -1353,7 +1364,27 @@
         });
       });
 
-      return entries;
+      const uniqueBySlice = new Map();
+      candidates.forEach((entry) => {
+        const sliceKey = `${entry.offset}:${entry.size}`;
+        const existing = uniqueBySlice.get(sliceKey);
+        if (!existing || getEntryPriority(entry) > getEntryPriority(existing)) {
+          uniqueBySlice.set(sliceKey, entry);
+        }
+      });
+
+      const uniqueByDownloadName = new Map();
+      uniqueBySlice.forEach((entry) => {
+        const nameKey = String(entry.downloadName || '').trim().toLowerCase();
+        const existing = uniqueByDownloadName.get(nameKey);
+        if (!existing || getEntryPriority(entry) > getEntryPriority(existing)) {
+          uniqueByDownloadName.set(nameKey, entry);
+        }
+      });
+
+      return Array.from(uniqueByDownloadName.values()).sort((left, right) => {
+        return left.offset - right.offset;
+      });
     }
 
     function setDeviceStatus(kind, text) {
