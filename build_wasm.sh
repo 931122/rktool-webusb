@@ -66,10 +66,7 @@ require_cmd emconfigure
 require_cmd emmake
 require_cmd cmake
 
-if [[ ! -d "$LIBUSB_SRC_DIR" ]]; then
-  echo "libusb source directory not found: $LIBUSB_SRC_DIR" >&2
-  exit 1
-fi
+bash "$ROOT_DIR/prepare_sources.sh"
 
 mkdir -p "$DIST_DIR" "$LIBUSB_BUILD_DIR" "$WASM_CMAKE_SRC_DIR" "$WASM_BUILD_DIR"
 

@@ -11,19 +11,46 @@
 
 ## 环境要求
 
-- Emscripten 3.1.48+
+- Emscripten 3.1.48+ (推荐4.x)
 - CMake 3.16+
 - Node.js 18+
+- `curl` 或 `wget`
+- `patch`
 
 ## 准备
-1. 下载并解压 libusb-1.0.29 到 ref，打上 patches/libusb 补丁
-2. 拉取 rkdeveloptool ，打上 patches/rkdeveloptool 补丁
+```bash
+bash ./prepare_sources.sh
+```
+
+这个脚本会自动：
+
+1. 初始化 `rkdeveloptool` submodule
+2. 下载并解压官方 `libusb-1.0.29` 源码包到 `ref/`
+3. 自动应用 `patches/libusb` 和 `patches/rkdeveloptool` 下的补丁
+
+补丁按“未打则应用、已打则跳过”的方式处理，重复执行是安全的。
 
 
 ## 构建 WASM
 
 ```bash
-./build_wasm.sh
+bash ./build_wasm.sh
+```
+
+`build_wasm.sh` 会先自动调用 `./prepare_sources.sh`，所以正常情况下直接执行这一条也可以。
+
+如需一条命令完成“准备源码 + 编译 WASM + 打包网页归档”，直接执行：
+
+```bash
+bash ./mkweb.sh
+```
+
+输出文件为 `webarchive/webarchive.tar.gz`。
+
+如需清理网页归档和 WASM 构建产物，可执行：
+
+```bash
+bash ./mkweb.sh clean
 ```
 
 或使用 npm 脚本：
@@ -107,4 +134,3 @@ npm run test:build
 - https://developer.mozilla.org/en-US/docs/WebAssembly
 - https://opensource.rock-chips.com/wiki_Rkdeveloptool
 - https://github.com/aezizhu/rkfw-unpack
-

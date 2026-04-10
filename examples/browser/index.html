@@ -815,14 +815,21 @@
     }
 
     .footer {
+      position: fixed;
+      right: 18px;
+      bottom: 14px;
+      z-index: 6;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 20px 0 12px;
+      padding: 6px 10px;
       color: var(--text-muted);
-      font-size: 13px;
-      border-top: 1px solid var(--border);
-      margin-top: 16px;
+      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      background: rgba(10, 18, 28, 0.58);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
 
     .footer a {
@@ -998,7 +1005,7 @@
               <button id="adb-toggle" class="secondary-btn" type="button" style="min-width: 88px;">连接 ADB</button>
             </div>
             <div class="inline-actions" style="margin-top: 0; gap: 6px;">
-              <input id="adb-command" type="text" value="getprop ro.product.model" style="flex: 1;" placeholder="输入 adb shell 命令" />
+              <input id="adb-command" type="text" value="reboot loader" style="flex: 1;" placeholder="输入 adb shell 命令" />
               <button id="adb-run" class="secondary-btn" type="button" style="padding: 0 12px; min-width: 72px;" disabled>执行 ADB</button>
             </div>
             <div class="inline-actions" style="margin-top: 6px; gap: 6px;">
@@ -1013,7 +1020,6 @@
                   <button class="adb-quick-item" type="button" data-command="reboot loader">重启到 loader</button>
                 </div>
               </div>
-              <button id="adb-reboot-loader" class="secondary-btn" type="button" disabled>Reboot Loader</button>
               <button id="adb-browser-open" class="secondary-btn" type="button" disabled>浏览文件</button>
             </div>
           </div>
@@ -1078,8 +1084,7 @@
     </section>
 
     <footer class="footer">
-      <span>rkdeveloptool WebUSB front-end</span>
-      <a href="https://github.com/jjm2473/rktool-webusb" target="_blank" rel="noopener noreferrer">GitHub: jjm2473/rktool-webusb</a>
+      <a href="REPO_URL" target="_blank" rel="noopener noreferrer">GitHub:rktool-webusb</a>
     </footer>
   </main>
 
@@ -1111,7 +1116,6 @@
     const adbQuickItems = document.querySelectorAll('.adb-quick-item');
     const adbCommandInput = document.getElementById('adb-command');
     const adbRunBtn = document.getElementById('adb-run');
-    const adbRebootLoaderBtn = document.getElementById('adb-reboot-loader');
     const adbBrowserOpenBtn = document.getElementById('adb-browser-open');
     const adbBrowserModal = document.getElementById('adb-browser-modal');
     const adbBrowserCloseBtn = document.getElementById('adb-browser-close');
@@ -1407,7 +1411,6 @@
       }
       adbToggleBtn.textContent = connected ? '断开 ADB' : '连接 ADB';
       adbRunBtn.disabled = busy || !connected;
-      adbRebootLoaderBtn.disabled = busy || !connected;
       adbQuickToggleBtn.disabled = busy || !connected;
       adbBrowserOpenBtn.disabled = busy || !connected;
       adbListBtn.disabled = busy || !connected;
@@ -1939,7 +1942,7 @@
       let lastLineWasProgress = false;
       return function(text) {
         const cleanText = String(text).trim();
-        
+
         if (!cleanText) return;
 
         // 如果是常见的刷屏进度信息，且当前正处于速率限制模式（刷机中），则过滤掉
@@ -2455,24 +2458,6 @@
 
     adbPullBtn.addEventListener('click', () => {
       void pullAdbFile(adbSelectedFile);
-    });
-
-    adbRebootLoaderBtn.addEventListener('click', async () => {
-      if (!adbSession?.connected) {
-        appendLine('ADB 尚未连接');
-        return;
-      }
-
-      try {
-        setBusy(true, '执行 ADB reboot loader');
-        appendLine('[ADB] reboot loader');
-        await adbSession.runShell('reboot loader');
-        appendLine('[ADB] 已发送 reboot loader，设备可能会立即断开并进入 Loader 模式');
-      } catch (error) {
-        appendLine(`ADB reboot loader 失败: ${String(error.message || error)}`);
-      } finally {
-        setBusy(false);
-      }
     });
 
     setLoaderSummary(null);
